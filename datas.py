@@ -1,7 +1,3 @@
-source = "AnimeOnsen"
-package = source.lower()
-lang = "en"
-
 package_path = 'f"src/{lang}/{package}"'
 
 res_path = 'f"src/{lang}/{package}/res"'
