@@ -8,7 +8,12 @@ class Scaffold:
         self.is_parsed = is_parsed
         self.name = name
         self.lang = lang
-        self.short_lang = lang[: lang.index("-")]  # en-US -> en, pt-BR -> pt
+        if "-" in lang:
+            # en-US -> en, pt-BR -> pt
+            self.short_lang = lang[: lang.find("-")]
+        else:
+            self.short_lang = lang
+
         self.baseUrl = baseUrl
 
         self.package_path = f"src/{self.short_lang}/{self.package}"
@@ -45,7 +50,7 @@ class Scaffold:
 
     @property
     def android_manifest(self) -> str:
-        host = self.baseUrl[self.baseUrl.index("//") + 2 :]
+        host = self.baseUrl.replace("https://", "", 1)
         return dedent(f"""
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
