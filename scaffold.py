@@ -27,7 +27,8 @@ class Scaffold:
         files = (
             (f"{self.package_path}/AndroidManifest.xml", self.android_manifest),
             (f"{self.package_path}/build.gradle", self.build_gradle),
-            (f"{self.sources_path}/{self.className}.kt", self.default_class)
+            (f"{self.sources_path}/{self.className}.kt", self.default_class),
+            (f"{self.sources_path}/{self.className}UrlActivity.kt", self.url_handler),
         )
 
         for file, content in files:
@@ -44,9 +45,32 @@ class Scaffold:
 
     @property
     def android_manifest(self) -> str:
+        host = self.baseUrl[self.baseUrl.index("//") + 2 :]
         return dedent(f"""
         <?xml version="1.0" encoding="utf-8"?>
-        <manifest package="eu.kanade.tachiyomi.animeextension" />"
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="eu.kanade.tachiyomi.animeextension">
+
+            <application>
+                <activity
+                    android:name=".{self.package_id}.{self.className}UrlActivity"
+                    android:excludeFromRecents="true"
+                    android:exported="true"
+                    android:theme="@android:style/Theme.NoDisplay">
+                    <intent-filter>
+                        <action android:name="android.intent.action.VIEW" />
+
+                        <category android:name="android.intent.category.DEFAULT" />
+                        <category android:name="android.intent.category.BROWSABLE" />
+
+                        <data
+                            android:host="{host}"
+                            android:pathPattern="/anime/..*"
+                            android:scheme="https" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
         """[1:])
 
     @property
@@ -135,7 +159,13 @@ class Scaffold:
             override fun latestUpdatesRequest(page: Int): Request {{
                 TODO("Not yet implemented")
             }}
+
+            companion object {{
+                const val PREFIX_SEARCH = "id:"
+            }}
+
         }}
+
         """[1:])
 
     @property
@@ -238,6 +268,60 @@ class Scaffold:
 
             override fun latestUpdatesSelector(): String {{
                 TODO("Not yet implemented")
+            }}
+
+            companion object {{
+                const val PREFIX_SEARCH = "id:"
+            }}
+        }}
+        """[1:])
+
+    @property
+    def url_handler(self):
+        return dedent(f"""
+        package eu.kanade.tachiyomi.animeextension.{self.package_id}
+
+        import android.app.Activity
+        import android.content.ActivityNotFoundException
+        import android.content.Intent
+        import android.os.Bundle
+        import android.util.Log
+        import kotlin.system.exitProcess
+
+        /**
+         * Springboard that accepts {self.baseUrl}/anime/<item> intents
+         * and redirects them to the main Aniyomi process.
+         */
+        class {self.className}UrlActivity : Activity() {{
+
+            private val TAG = javaClass.simpleName
+
+            override fun onCreate(savedInstanceState: Bundle?) {{
+                super.onCreate(savedInstanceState)
+                val pathSegments = intent?.data?.pathSegments
+                if (pathSegments != null && pathSegments.size > 1) {{
+                    // https://<host>/<segment 0>/<segment 1>...
+                    // ex: pattern "/anime/..*" -> pathSegments[1]
+                    // ex: pattern "/anime/info/..*" -> pathSegments[2]
+                    // etc..
+                    val item = pathSegments[1]
+                    val mainIntent = Intent().apply {{
+                        action = "eu.kanade.tachiyomi.ANIMESEARCH"
+                        putExtra("query", "${{{self.className}.PREFIX_SEARCH}}$item")
+                        putExtra("filter", packageName)
+                    }}
+
+                    try {{
+                        startActivity(mainIntent)
+                    }} catch (e: ActivityNotFoundException) {{
+                        Log.e(TAG, e.toString())
+                    }}
+                }} else {{
+                    Log.e(TAG, "could not parse uri from intent $intent")
+                }}
+
+                finish()
+                exitProcess(0)
             }}
         }}
         """[1:])
