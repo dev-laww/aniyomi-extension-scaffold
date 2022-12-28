@@ -1,0 +1,4 @@
+__pycache__/
+
+# prevents pushing some tests
+src/
