@@ -1,5 +1,5 @@
 # Aniyomi Extension Scaffold
-A fork of [Aniyomi Extension Scaffold](https://github.com/tora-o/aniyomi-extension-scaffold) modified to suit my needs, but in the end it still is a script that scaffolds the creation of extensions for aniyomi.
+
 
 ## Usage
 
